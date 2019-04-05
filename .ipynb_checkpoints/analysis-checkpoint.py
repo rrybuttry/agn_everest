@@ -13,16 +13,16 @@ from lightkurve.correctors import PLDCorrector
 import everest 
 
 import logging
-
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 
 #-------------------------------------------Extracting correct K2 light curve fits file------------------------------
 
-def mast_path(epic, c):
+def mast_path(epic, c, dtype='lightcurves'):
     """
-    Returns file directory and filename of K2 light curve fits files
+    Returns file directory and filename of K2 light curve fits files on MAST server
+    (needs to be edited)
     """
     if len(str(c)) < 2: c_str = '0'+str(c)
     else: c_str = str(c)
@@ -30,9 +30,10 @@ def mast_path(epic, c):
     epic = str(int(epic))
     XXXX = epic[:4]
     YY = epic[4:6]
-    ZZZ = epic[6:]
+    #ZZZ = epic[6:]
     
     
+    #dtype = 
     dir_path = 'https://archive.stsci.edu/pub/k2/lightcurves/c'+c+'/'+XXXX+'00000/'+YY+'000'
     fits_file = 'ktwo%s-c%s_llc.fits'%(epic, c_str)
     return dir_path, fname
@@ -48,7 +49,8 @@ def local_path(epic, c):
     #fpath = mastDownload_path+'K2/ktwo%s-c%s_lc/ktwo%s-c%s_lpd-targ.fits.gz'%(epic, c_str, epic, c_str)
     #dir_path = mastDownload_path+'K2/ktwo%s-c%s_lc/'%(epic, c_str)
 
-    dir_path = '/home/rachel/.lightkurve-cache/mastDownload/K2/ktwo%s-c%s_lc/'%(epic, c_str)
+    #dir_path = '/home/rachel/.lightkurve-cache/mastDownload/K2/ktwo%s-c%s_lc/'%(epic, c_str)
+    dir_path = '~/.lightkurve-cache/mastDownload/K2/ktwo%s-c%s_lc/'%(epic, c_str)
     fname = 'ktwo%s-c%s_lpd-targ.fits.gz'%(epic, c_str)
     return dir_path, fname
 
