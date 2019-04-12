@@ -60,7 +60,7 @@ if __name__=="__main__":
         print(epic)
         
         # check if files already exist
-        if os.path.exists(folder+"%s_lc.csv"%epic) and os.path.exists(folder+"%s_mask.npy"%epic):
+        if os.path.exists(folder+"/%s_lc.csv"%epic) and os.path.exists(folder+"/%s_mask.npy"%epic):
             print("\t Files already exist")
             pass
         else:
