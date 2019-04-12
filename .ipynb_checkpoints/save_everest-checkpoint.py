@@ -20,7 +20,7 @@ def save_data(epic, campaign):
         "flux" : obj.flux (not .fcor!)
         "flux_err" : (raw flux error ?)
     
-    The second is a .npz containing
+    The second is a .npy containing
     "mask" : obj.mask (spurious cadence mask)
     
     """
@@ -60,7 +60,7 @@ if __name__=="__main__":
         print(epic)
         
         # check if files already exist
-        if os.path.exists(folder+"%s_lc.csv"%epic) and os.path.exists(folder+"%s_mask.npz"%epic):
+        if os.path.exists(folder+"%s_lc.csv"%epic) and os.path.exists(folder+"%s_mask.npy"%epic):
             print("\t Files already exist")
             pass
         else:
