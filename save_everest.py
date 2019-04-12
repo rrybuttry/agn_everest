@@ -38,7 +38,7 @@ def save_data(epic, campaign):
     # put it in a pandas dataframe
     df = pd.DataFrame(time = lc_everest.time,
         flux = lc_everest.flux,
-        flux_err = lc_everest.frawerr)
+        flux_err = lc_everest.fraw_err)
     
     # save as a csv
     df.to_csv(folder+"%s_lc.csv"%epic, index=False)
