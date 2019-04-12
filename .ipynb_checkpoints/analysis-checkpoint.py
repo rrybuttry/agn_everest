@@ -1,11 +1,11 @@
 
 # functions and fundamental values defined here!
-
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+
+'''
 from astropy.stats import LombScargle
 
 import lightkurve as lk
@@ -15,7 +15,7 @@ import everest
 import logging
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
-
+'''
 
 #-------------------------------------------Extracting correct K2 light curve fits file------------------------------
 
@@ -70,13 +70,13 @@ def LS_PSD(t,y, f=None):
     Normalized Lomb Scargle Power Spectrum Density
     
     args
-        t: time array
-        y: flux array 
+        t : time array
+        y : flux array 
         
-        f(optional): frequency range
+        f(optional) : frequency range
     
     returns
-        f: frequency range with first and last entry removed
+        f : frequency range with first and last entry removed
         power_ls: lomb-scargle power
     
     """
@@ -122,3 +122,100 @@ def plot_lc_PSD(time, flux, ax1,ax2,l="", f=None, **kwargs):
     ax2.set_yscale("log")
     ax2.set_xscale("log")  
     ax2.legend()
+    
+#-------------------------------------------Statistics and metrics------------------------------------------
+
+def norm_xcorr(a, v):
+    """
+    Compute the normalized cross-correlation (lag plot)
+    
+    args
+        a : time series #1
+        v : time series #2
+        
+    returns
+        normlized cross correlation (where 1.0 is 100% correlated)
+    """
+    a = (a - np.mean(a)) / (np.std(a) * len(a))
+    v = (v - np.mean(v)) /  np.std(v)
+
+    return np.correlate(a, v, mode='full')
+
+
+def gini(array):
+    """
+    Function to calaculate the Gini coefficient
+    (taken from: https://github.com/oliviaguest/gini)
+    """
+    # based on bottom eq:
+    # http://www.statsdirect.com/help/generatedimages/equations/equation154.svg
+    # from:
+    # http://www.statsdirect.com/help/default.htm#nonparametric_methods/gini.htm
+    # All values are treated equally, arrays must be 1d:
+    array = array.flatten()
+
+    # remove NaNs
+    array = array[~np.isnan(array)]
+
+    if np.amin(array) < 0:
+        # Values cannot be negative:
+        array -= np.amin(array)
+    # Values cannot be 0:
+    array += 0.0000001
+    # Values must be sorted:
+    array = np.sort(array)
+    # Index per array element:
+    index = np.arange(1,array.shape[0]+1)
+    # Number of array elements:
+    n = array.shape[0]
+    # Gini coefficient:
+    return ((np.sum((2 * index - n  - 1) * array)) / (n * np.sum(array)))
+
+
+#-------------------------------------------Data processing------------------------------------------
+
+def sort_by_time(t,f,mask=None):
+    """
+    
+    """
+    if mask is not None:
+        sorting = np.array(time[~mask]).argsort()
+        t_sorted = t[~mask][sorting]
+        f_sorted = f[~mask][sorting]
+    else:
+        sorting = np.array(time).argsort()
+        t_sorted = t[sorting]
+        f_sorted = f[sorting]
+        
+    return t_sorted, f_sorted
+
+def interp_missing(c, f, gap=None):
+    """
+    Function to "interpolate" all the missing cadence points
+    
+    args
+        c : cadence number (must be in ints(?))
+        f : flux at given cadence 
+        
+    returns
+        c : complete cadence numbers
+        f : flux at the complete cadence numbers
+    """
+
+    missing_c = np.setdiff1d(range(min(c), max(c)+1), c)
+
+    # incorporate mid campaign gap if necessary
+    if gap is not None: missing_c = missing_c[np.logical_not(np.isin(missing_c, gap))]
+
+
+    for cm in missing_c:
+        # get index right after "missing" time value
+        ind = np.argwhere(c > cm)[0]
+        # interpolate the "missing" corrected flux values (take the average--linear interp)
+        missing_f = (f[ind-1] + f[ind])/2.0
+
+        # insert them into the correct locations in the arrays
+        f = np.insert(f, ind, missing_f)
+        c = np.insert(c, ind, cm)
+
+    return c, f
