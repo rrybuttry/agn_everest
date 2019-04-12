@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 import os
 
-
+campaign = 8 
 input_csv = "object_keys/c8_shaya_ch13_random50.csv"
 folder = "../EVEREST_corrected"
 
@@ -27,16 +27,17 @@ def save_data(epic, campaign):
     
     # download it if it's in EVEREST database, else detred maunally
     try:
-        print("\t Found in EVEREST Database")
+        
         lc_everest = everest.Everest(epic, season=campaign)
+        print("\t Found in EVEREST Database")
     except:
         print("\t Manually Detrending via nPLD")
-        lc_everest = everest.detrender.nPLD(test_epic, season=campaign)
+        lc_everest = everest.detrender.nPLD(epic, season=campaign)
     
 
     # put it in a pandas dataframe
-    df = pd.DataFrame(time = lc_everest.time
-        flux = lc_everest.flux
+    df = pd.DataFrame(time = lc_everest.time,
+        flux = lc_everest.flux,
         flux_err = lc_everest.frawerr)
     
     # save as a csv
