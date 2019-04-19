@@ -9,7 +9,7 @@ import os
 
 campaign = 8 
 input_csv = "object_keys/c8_shaya_ch13_random50.csv"
-folder = "../EVEREST_corrected"
+folder = "../EVEREST_corrected_2"
 
 def save_data(epic, campaign):
     """
@@ -36,7 +36,8 @@ def save_data(epic, campaign):
     
 
     # put it in a pandas dataframe
-    df = pd.DataFrame(data = {'time': lc_everest.time,
+    df = pd.DataFrame(data = {'cadenceno':lc_everest.cadn,
+        'time': lc_everest.time,
         'flux': lc_everest.flux,
         'flux_err': lc_everest.fraw_err})
     
@@ -44,7 +45,33 @@ def save_data(epic, campaign):
     df.to_csv(folder+"/%s_lc.csv"%epic, index=False)
     
     # save the spurious cadence mask
-    np.save(folder+"/%s_mask"%epic, lc_everest.mask)
+    np.save(folder+"/%s_scmask.npy"%epic, lc_everest.mask)
+    
+    # save the bad and nan masks (since that seems to be what they apply)
+    np.save(folder+"/%s_badmask.npy"%epic, lc_everest.badmask)
+    np.save(folder+"/%s_nanmask.npy"%epic, lc_everest.nanmask)
+    
+    
+def load_data(epic, campaign):
+    """
+    Function to load manually everest detrended light curves
+    from format saved above
+    """
+    
+    # load csv
+    df = pd.read_csv(folder+"/%s_lc.csv"%epic)
+    
+    # load spurious cadence mask
+    sc = np.load(folder+"/%s_scmask.npy"%epic)
+    
+    # load badmask
+    bad = np.load(folder+"/%s_badmask.npy"%epic)
+    
+    # loadnanmask
+    nan = np.load(folder+"/%s_nanmask.npy"%epic)
+    
+    return df, sc, bad, nan
+    
     
     
 
