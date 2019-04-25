@@ -139,7 +139,7 @@ def norm_xcorr(a, v):
     a = (a - np.mean(a)) / (np.std(a) * len(a))
     v = (v - np.mean(v)) /  np.std(v)
 
-    return np.correlate(a, v, mode='full')
+    return np.correlate(a, v, mode='full') # extracta the lag times
 
 
 def gini(array):
