@@ -7,7 +7,7 @@ import pandas as pd
 from astropy.stats import LombScargle
 import lightkurve as lk
 
-
+from astropy.convolution import convolve, Box1DKernel # for boxcar smoothing 
 '''
 from lightkurve.correctors import PLDCorrector
 import everest 
@@ -252,3 +252,64 @@ def interp_missing(c, f, gap=None):
         c = np.insert(c, ind, cm)
 
     return c, f
+
+def bin_smoothing(x,y, N=30):
+    """
+    Function to perform smoothing on a dataset 
+    Computes the average of bins for data binned with N data points.
+    (Note: takes both x and y to make my life easier)
+    
+    args
+        x : array of x dimension of the data
+        y : array of y dimension of the data
+        N : number of data points in bin (default N = 30)
+    returns
+        x_smooth : smoothed x-array
+        y_smooth : smoothed y-array
+    """
+    x_smooth = []
+    y_smooth = []
+
+    i = 0
+    while i < len(x):
+        if i+N > len(x):
+            x_smooth.append(np.average(x[i:]))
+            y_smooth.append(np.average(y[i:]))
+        else:
+            x_smooth.append(np.average(x[i:i+N]))
+            y_smooth.append(np.average(y[i:i+N]))
+        i += N
+        
+    return np.array(x_smooth), np.array(y_smooth)
+
+def smooth_fit(x, y, smoothing='boxcar', N=30):
+    """
+    Function to smooth and perform linear fit to x,y data
+    
+    args
+        x : array of x dimension of the data
+        y : array of y dimension of the data
+        smoothing : method to smooth the data
+            'boxcar' : (default) smoothed data is same size as input data
+            'bin' : (see bin_smoothing) smoothed data is smaller shape than input data
+
+    returns
+        m : slope of smoothed fit
+        b : y-intercept of smoothed fit
+    """
+    
+    # smooth
+    if smoothing=='boxcar':
+        # boxcar smoothing
+        y_smooth = convolve(y, Box1DKernel(N), boundary='extend')
+        x_smooth = x
+    elif smoothing=='bin':
+        bin_smoothing(x,y,N)
+    else:
+        raise ValueError("Invalid smoothing type specified '%s'"%smoothing)
+        
+        
+    # fit 
+    m, b = np.polyfit(x_smooth, y_smooth, 1)
+    
+    return m,b
