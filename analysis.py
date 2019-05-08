@@ -111,6 +111,7 @@ def plot_lc_PSD(time, flux, ax1,ax2,l="", f=None, **kwargs):
     f,power = LS_PSD(time*86400,flux, f=f)
     #f,power = powerSpectrum(time,flux)
     
+    
     ax1.plot(time,flux, label=l+" light curve", **kwargs)
     ax1.set_xlabel("Time - 2454833[BKJD days]")
     ax1.set_ylabel("Flux")
