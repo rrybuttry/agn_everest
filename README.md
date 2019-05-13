@@ -1,5 +1,5 @@
 # agn_everest
-Repository for building off of [EVEREST 2.0](https://github.com/rodluger/everest) to be applied to K2 AGN and faint galaxies.
+Repository for building off of [EVEREST 2.0](https://github.com/rodluger/everest) to create a correction to be applied to K2 AGN and faint galaxies.
 
 ## Jupyter Notebooks
 * everest_initial_test.ipynb - initial before/after comparison of EVEREST PLD 
