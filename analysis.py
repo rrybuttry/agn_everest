@@ -8,14 +8,14 @@ from astropy.stats import LombScargle
 import lightkurve as lk
 
 from astropy.convolution import convolve, Box1DKernel # for boxcar smoothing 
-'''
+
 from lightkurve.correctors import PLDCorrector
 import everest 
 
 import logging
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
-'''
+
 
 #-------------------------------------------Extracting correct K2 light curve fits file------------------------------
 
@@ -53,6 +53,34 @@ def local_path(epic, c):
     dir_path = '~/.lightkurve-cache/mastDownload/K2/ktwo%s-c%s_lc/'%(epic, c_str)
     fname = 'ktwo%s-c%s_lpd-targ.fits.gz'%(epic, c_str)
     return dir_path, fname
+
+
+def get_submod(channel):
+    """
+    function to convert K2 channel number to module
+    
+    returns
+        mod: 2-24
+        submod: 1-4
+    """
+
+    #if channel > 85 or channel < 1:
+    #    raise ValueError('Invalid Channel Number: %i'%channel)
+
+    offset = 2
+    if channel%4==0:
+        offset -= 1
+    if channel > 12:
+        offset += 1
+    if channel > 72:
+        offset += 1
+
+    mod = channel//4 + offset
+    
+    submod = channel-(mod-offset)*4
+    if submod==0: submod=4
+    
+    return mod, submod
 
 
 
@@ -174,7 +202,7 @@ def gini(array):
     return ((np.sum((2 * index - n  - 1) * array)) / (n * np.sum(array)))
 
 
-#-------------------------------------------Data processing------------------------------------------
+#-------------------------------------------Data pre-processing------------------------------------------
 
 # (boolean) mask to apply to a K2 capaign 8 light curve to make it the same shape as the lightkurve time series
 #  3852 cadence points in a complete 80 day lc
@@ -314,3 +342,104 @@ def smooth_fit(x, y, smoothing='boxcar', N=30):
     m, b = np.polyfit(x_smooth, y_smooth, 1)
     
     return m,b
+
+
+
+#-------------------------------------------K2 EVEREST PLD based correction------------------------------------------
+
+def K2_correction(epic, campaign=None, lttr='cbv', runpld=True):
+    """
+    performs a PLD based correction on K2 objects
+    
+    args
+        epic : EPIC ID (int)
+        campaign : K2 campaign (int)
+        runpld(optional) : if true, nPLD will be manually run when the EPIC ID is not found in the EVEREST database
+        lttr(optional) : long-timescale trend removal method 
+            'cbv' subtracts 2 cotrending basis vectors
+            'linear' subtracts linear slope
+        
+    returns
+        time : array of timestamps for observations (in days)
+        flux_corrected : array of corrected flux for object
+    """  
+
+    try:
+        # get an everest light curve 
+
+        # -----------------get EVEREST PLD-----------------
+        lc = everest.Everest(epic, season=campaign, mission='k2')
+
+    except:
+        # there is no corrected light curve in the EVEREST database
+        logging.info("No EVEREST light curve found")
+        
+        if runpld:
+            logging.info("Running EVEREST nPLD (this may take a while)")
+        
+            # -----------------run EVEREST nPLD-----------------
+            lc = everest.nPLD(epic, season=campaign, mission='k2')
+            logging.info("Done")
+            
+        else:
+            logging.info("Exiting funtion returning None; run again and set 'runpld=True' to run the EVEREST correction")
+            return None
+    
+    if lttr=='cbv':
+        # calculate correction based on (2) cotrending basis vectors
+        lc.cbv_num = 2
+        lc.compute()
+        
+        
+        # put flux/cadences into an array
+        # (there are 3852 cadences in a given 80 day campaign)
+        cad = np.arange(3852+1)
+        flux_pld = lc.flux
+
+        # turning indices found to be "bad" into a boolen mask to apply
+        mask = (np.isin(cad, np.concatenate([lc.nanmask, lc.badmask, lc.mask])))
+
+        # interpolate the spurious cadences
+        interped_vals = np.interp(cad[mask], cad[~mask], flux_pld[~mask])
+        # replace spurious cadence values with the interpolated values
+        flux_pld[mask] = interped_vals
+
+        
+        return lc.time, flux_pld
+        
+    elif lttr=='linear':
+
+        # -----------------do addtional cut and slope subtraction-----------------
+        # put flux/cadences into an array
+        # (there are 3852 cadences in a given 80 day campaign)
+        cad = np.arange(3852+1)
+        flux_pld = lc.flux
+
+        # turning indices found to be "bad" into a boolen mask to apply
+        mask = (np.isin(cad, np.concatenate([lc.nanmask, lc.badmask, lc.mask])))
+
+        # interpolate the spurious cadences
+        interped_vals = np.interp(cad[mask], cad[~mask], flux_pld[~mask])
+        # replace spurious cadence values with the interpolated values
+        flux_pld[mask] = interped_vals
+
+        # 30 mintue intervals between cadences 
+        cutoff_day = 3*24*2
+        #cutoff = np.logical_and(cad>cutoff_day, cad<cad[-1]-5*cutoff_day)
+        cutoff = cad>cutoff_day
+        # finding linear fit 
+        m,b = np.polyfit(cad[cutoff], flux_pld[cutoff], 1)
+
+        # subtracting it
+        flux_corrected = flux_pld[cutoff] - (m*cad[cutoff])
+
+        # time from the light curve
+        time = lc.time[cutoff]  
+
+        return time, flux_corrected
+    
+    else:
+        raise ValueError("Invalid method in lttr arg. Use either 'cbv' or 'linear'")
+
+
+    
