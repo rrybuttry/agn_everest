@@ -4,13 +4,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from astropy.stats import LombScargle
+from astropy.timeseries import LombScargle
 import lightkurve as lk
 
-from astropy.convolution import convolve, Box1DKernel # for boxcar smoothing 
+from astropy.convolution import convolve, Box1DKernel # for boxcar smoothing
 
 from lightkurve.correctors import PLDCorrector
-import everest 
+import everest
 
 import logging
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
@@ -26,18 +26,18 @@ def mast_path(epic, c, dtype='lightcurves'):
     """
     if len(str(c)) < 2: c_str = '0'+str(c)
     else: c_str = str(c)
-    
+
     epic = str(int(epic))
     XXXX = epic[:4]
     YY = epic[4:6]
     #ZZZ = epic[6:]
-    
-    
-    #dtype = 
+
+
+    #dtype =
     dir_path = 'https://archive.stsci.edu/pub/k2/lightcurves/c'+c+'/'+XXXX+'00000/'+YY+'000'
     fits_file = 'ktwo%s-c%s_llc.fits'%(epic, c_str)
     return dir_path, fname
-    
+
 def local_path(epic, c):
     """
     Returns file directory and filename of K2 target pixel files
@@ -58,7 +58,7 @@ def local_path(epic, c):
 def get_submod(channel):
     """
     function to convert K2 channel number to module
-    
+
     returns
         mod: 2-24
         submod: 1-4
@@ -76,15 +76,43 @@ def get_submod(channel):
         offset += 1
 
     mod = channel//4 + offset
-    
+
     submod = channel-(mod-offset)*4
     if submod==0: submod=4
-    
+
     return mod, submod
+
+def get_channel(mod,submod):
+    """
+    function to convert K2 module to channel number
+    
+    args
+        mod: 2-24
+        submod: 1-4
+    
+    returns
+        channel
+    """
+    if mod < 6:
+        offset = 2
+    elif mod < 21:
+        offset = 3
+    elif mod < 25:
+        offset = 4
+    else:
+        raise ValueError("Invalid Module")
+        
+    if submod<0 or submod>3: raise ValueError("Invalid SubModule (Submodules are numbered from 0-3 instead of 1-4)")
+        
+    channel = (mod-offset)*4 + submod+1
+    
+    return channel
+
+
 
 #-------------------------------------------Plotting power spectrum density------------------------------------------
 
-# K2 frequncy range we're probing 
+# K2 frequncy range we're probing
 #   80 day campaigns, minumum 30 minute spacings
 #   half-hours = days*24*2
 #   sec = min*60
@@ -94,19 +122,19 @@ k2_freq = np.fft.rfftfreq(80*48, 30.0*60)
 def LS_PSD(t,y, f=None):
     """
     Normalized Lomb Scargle Power Spectrum Density
-    
+
     args
         t : time array
-        y : flux array 
-        
+        y : flux array
+
         f(optional) : frequency range
-    
+
     returns
         f : frequency range with first and last entry removed
         power_ls: lomb-scargle power
-    
+
     """
-    N = len(t) # number of datapoints    
+    N = len(t) # number of datapoints
     #f = np.fft.rfftfreq(N**2, (t[-1] - t[0])) # frequency range (from Uttley et al. 2002)
     if f is None:
         f = np.fft.rfftfreq(N, (t[1] - t[0])) # frequency range
@@ -117,49 +145,49 @@ def LS_PSD(t,y, f=None):
 
     # >>> To get the LS based PSD in the correct units, normalize by N <<<
     power_ls /= N
-    
+
     return f[1:-1], power_ls
 
 def plot_lc_PSD(time, flux, ax1,ax2,l="", f=None, **kwargs):
     """
     Plots lightcurve and PSD in ax1 and ax2 respectively
-    
+
     args
         time: time array
         flux: flux array
         ax1: matplotlib axis (subplot) for flux v. time
         ax2: matplotlib axis (subplot) for power v. freq
         l: (optional) label for input data (e.g. raw, corrected)
-    
+
     """
-    
+
     # sec = days*86400
     f,power = LS_PSD(time*86400,flux, f=f)
     #f,power = powerSpectrum(time,flux)
-    
-    
+
+
     ax1.plot(time,flux, label=l+" light curve", **kwargs)
     ax1.set_xlabel("Time - 2454833[BKJD days]")
     ax1.set_ylabel("Flux")
     ax1.legend()
-    
+
     ax2.plot(f,power, label=l+" PSD", **kwargs)
     ax2.set_xlabel("frequency [Hz]")
     ax2.set_ylabel("power [$\mathrm{ppm}^2/\mathrm{Hz}$]")
     ax2.set_yscale("log")
-    ax2.set_xscale("log")  
+    ax2.set_xscale("log")
     ax2.legend()
-    
+
 #-------------------------------------------Statistics and metrics------------------------------------------
 
 def norm_xcorr(a, v):
     """
     Compute the normalized cross-correlation (lag plot)
-    
+
     args
         a : time series #1
         v : time series #2
-        
+
     returns
         normlized cross correlation (where 1.0 is 100% correlated)
     """
@@ -178,7 +206,7 @@ def gini(array):
     # http://www.statsdirect.com/help/generatedimages/equations/equation154.svg
     # from:
     # http://www.statsdirect.com/help/default.htm#nonparametric_methods/gini.htm
-    
+
     # All values are treated equally, arrays must be 1d:
     array = array.flatten()
 
@@ -204,19 +232,19 @@ def gini(array):
 
 # (boolean) mask to apply to a K2 capaign 8 light curve to make it the same shape as the lightkurve time series
 #  3852 cadence points in a complete 80 day lc
-_test_lc_c8 = lk.search_targetpixelfile(220292052,campaign=8).download().to_lightcurve(aperture_mask='all')
-c8_lk_mask = np.isin(np.arange(3852+1), _test_lc_c8.cadenceno-_test_lc_c8.cadenceno[0])
+#_test_lc_c8 = lk.search_targetpixelfile(220292052,campaign=8).download().to_lightcurve(aperture_mask='all')
+#c8_lk_mask = np.isin(np.arange(3852+1), _test_lc_c8.cadenceno-_test_lc_c8.cadenceno[0])
 
 def mask_spurious(time,flux):
     """
     Function to apply lightkurve.flatten method of calculating spurious cadences
-    
+
     returns
-        spurious_cadences: boolean mask 
+        spurious_cadences: boolean mask
     """
     lc = lk.LightCurve(time=time, flux=flux)
     _, spurious_cadences = lc.flatten().remove_outliers(return_mask=True)
-    
+
     return spurious_cadences
 
 def ind_to_bool(range_arr, mask_in):
@@ -224,18 +252,18 @@ def ind_to_bool(range_arr, mask_in):
     EVEREST K2 masks are arrays containing the  indicies of the relevant cadences.
     This function converts t
     (may remove this function)
-    
+
     args
-        range_arr: an np.arange object that represents the ordered 
+        range_arr: an np.arange object that represents the ordered
             indices of the array the mask will be applied to
         mask_in: np array containing the indices of the mask(s)
-        
+
     returns
-        a boolean mask 
-        
-    
+        a boolean mask
+
+
     """
-    
+
     return np.isin(range_arr, mask_in)
 
 def sort_by_time(t,f,mask=None):
@@ -246,17 +274,17 @@ def sort_by_time(t,f,mask=None):
     sorting = np.array(t).argsort()
     t_sorted = t[sorting]
     f_sorted = f[sorting]
-        
+
     return t_sorted, f_sorted
 
 def interp_missing(c, f, gap=None):
     """
     Function to "interpolate" all the missing cadence points
-    
+
     args
         c : cadence number (must be in ints(?))
-        f : flux at given cadence 
-        
+        f : flux at given cadence
+
     returns
         c : complete cadence numbers
         f : flux at the complete cadence numbers
@@ -282,10 +310,10 @@ def interp_missing(c, f, gap=None):
 
 def bin_smoothing(x,y, N=30):
     """
-    Function to perform smoothing on a dataset 
+    Function to perform smoothing on a dataset
     Computes the average of bins for data binned with N data points.
     (Note: takes both x and y to make my life easier)
-    
+
     args
         x : array of x dimension of the data
         y : array of y dimension of the data
@@ -306,13 +334,13 @@ def bin_smoothing(x,y, N=30):
             x_smooth.append(np.average(x[i:i+N]))
             y_smooth.append(np.average(y[i:i+N]))
         i += N
-        
+
     return np.array(x_smooth), np.array(y_smooth)
 
 def smooth_fit(x, y, smoothing='boxcar', N=30):
     """
     Function to smooth and perform linear fit to x,y data
-    
+
     args
         x : array of x dimension of the data
         y : array of y dimension of the data
@@ -324,7 +352,7 @@ def smooth_fit(x, y, smoothing='boxcar', N=30):
         m : slope of smoothed fit
         b : y-intercept of smoothed fit
     """
-    
+
     # smooth
     if smoothing=='boxcar':
         # boxcar smoothing
@@ -334,36 +362,37 @@ def smooth_fit(x, y, smoothing='boxcar', N=30):
         bin_smoothing(x,y,N)
     else:
         raise ValueError("Invalid smoothing type specified '%s'"%smoothing)
-        
-        
-    # fit 
+
+
+    # fit
     m, b = np.polyfit(x_smooth, y_smooth, 1)
-    
+
     return m,b
 
 
 
 #-------------------------------------------K2 EVEREST PLD based correction------------------------------------------
 
-def K2_correction(epic, campaign=None, lttr='cbv', runpld=True):
+def K2_correction(epic, campaign=None, lttr='cbv', runpld=True, Ncbv=2):
     """
     performs a PLD based correction on K2 objects
-    
+
     args
         epic : EPIC ID (int)
         campaign : K2 campaign (int)
         runpld(optional) : if true, nPLD will be manually run when the EPIC ID is not found in the EVEREST database
-        lttr(optional) : long-timescale trend removal method 
+        lttr(optional) : long-timescale trend removal method
             'cbv' subtracts 2 cotrending basis vectors
             'linear' subtracts linear slope
-        
+        Ncbv(optional) : number of EVEREST co-trending basis vectors to fit/subtract (is using lttr='cbv')
+
     returns
         time : array of timestamps for observations (in days)
         flux_corrected : array of corrected flux for object
-    """  
+    """
 
     try:
-        # get an everest light curve 
+        # get an everest light curve
 
         # -----------------get EVEREST PLD-----------------
         lc = everest.Everest(epic, season=campaign, mission='k2')
@@ -371,24 +400,24 @@ def K2_correction(epic, campaign=None, lttr='cbv', runpld=True):
     except:
         # there is no corrected light curve in the EVEREST database
         logging.info("No EVEREST light curve found")
-        
+
         if runpld:
             logging.info("Running EVEREST nPLD (this may take a while)")
-        
+
             # -----------------run EVEREST nPLD-----------------
             lc = everest.nPLD(epic, season=campaign, mission='k2')
             logging.info("Done")
-            
+
         else:
             logging.info("Exiting funtion returning None; run again and set 'runpld=True' to run the EVEREST correction")
             return None
-    
+
     if lttr=='cbv':
         # calculate correction based on (2) cotrending basis vectors
-        lc.cbv_num = 2
+        lc.cbv_num = Ncbv
         lc.compute()
-        
-        
+
+
         # put flux/cadences into an array
         # (there are 3852 cadences in a given 80 day campaign)
         cad = np.arange(3852+1)
@@ -402,9 +431,9 @@ def K2_correction(epic, campaign=None, lttr='cbv', runpld=True):
         # replace spurious cadence values with the interpolated values
         flux_pld[mask] = interped_vals
 
-        
+
         return lc.time, flux_pld
-        
+
     elif lttr=='linear':
 
         # -----------------do addtional cut and slope subtraction-----------------
@@ -421,23 +450,20 @@ def K2_correction(epic, campaign=None, lttr='cbv', runpld=True):
         # replace spurious cadence values with the interpolated values
         flux_pld[mask] = interped_vals
 
-        # 30 mintue intervals between cadences 
+        # 30 mintue intervals between cadences
         cutoff_day = 3*24*2
         #cutoff = np.logical_and(cad>cutoff_day, cad<cad[-1]-5*cutoff_day)
         cutoff = cad>cutoff_day
-        # finding linear fit 
+        # finding linear fit
         m,b = np.polyfit(cad[cutoff], flux_pld[cutoff], 1)
 
         # subtracting it
         flux_corrected = flux_pld[cutoff] - (m*cad[cutoff])
 
         # time from the light curve
-        time = lc.time[cutoff]  
+        time = lc.time[cutoff]
 
         return time, flux_corrected
-    
+
     else:
         raise ValueError("Invalid method in lttr arg. Use either 'cbv' or 'linear'")
-
-
-    
