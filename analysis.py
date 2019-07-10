@@ -420,7 +420,7 @@ def K2_correction(epic, campaign=None, lttr='cbv', runpld=True, Ncbv=2):
 
         # put flux/cadences into an array
         # (there are 3852 cadences in a given 80 day campaign)
-        cad = np.arange(3852+1)
+        cad = np.arange(len(lc.time))
         flux_pld = lc.flux
 
         # turning indices found to be "bad" into a boolen mask to apply
@@ -439,7 +439,7 @@ def K2_correction(epic, campaign=None, lttr='cbv', runpld=True, Ncbv=2):
         # -----------------do addtional cut and slope subtraction-----------------
         # put flux/cadences into an array
         # (there are 3852 cadences in a given 80 day campaign)
-        cad = np.arange(3852+1)
+        cad = np.arange(len(lc.time))
         flux_pld = lc.flux
 
         # turning indices found to be "bad" into a boolen mask to apply
