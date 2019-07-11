@@ -227,6 +227,37 @@ def gini(array):
     # Gini coefficient:
     return ((np.sum((2 * index - n  - 1) * array)) / (n * np.sum(array)))
 
+def spike(time, flux):
+    """
+    Function to calculate the metric called "spike" for K2 objects. 
+    When spike > 1.0, the object is said to have bad arc drift.
+    
+    args
+        time : time reference for light curve (seconds)
+        flux : flux of light curve
+    returns
+        spike : spike metric
+    """
+    
+    # get fit for below the 5 day noise floor
+    freq, power = LS_PSD(time, flux, f = k2_freq)
+    
+    # noise floor are freqencies > X days, convert to Hz
+    noise_floor_days = 5
+    noise_floor_mask = freq>(2*np.pi/(noise_floor_days*86400))
+    m_noise, b_noise = np.polyfit(np.log10(freq)[noise_floor_mask], np.log10(power)[noise_floor_mask], 1)
+
+    freq_six_hour = (2*np.pi/(0.5*86400)) # frequency for 2*6 hour thurster fire
+
+    # Compute the LS based power for single frequency
+    model = LombScargle(time, flux)
+    freq_temp = k2_freq[320]# a very particular frequency
+    power_temp = model.power(freq_temp, method="fast", normalization="psd")
+    power_temp /= len(time)
+
+    spike = np.log10(power_temp/(10**(np.log10(freq_six_hour)*m_noise+b_noise)))
+    
+    return spike
 
 #-------------------------------------------Data pre-processing------------------------------------------
 
