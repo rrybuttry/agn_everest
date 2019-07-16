@@ -118,6 +118,31 @@ def get_channel(mod,submod):
 #   sec = min*60
 k2_freq = np.fft.rfftfreq(80*48, 30.0*60)
 
+def FFT_PSD(t,y,f=None):
+    """
+    Normalized fast fourier transform Power Spectrum Density
+
+    args
+        t : time array
+        y : flux array
+
+        f(optional) : frequency range
+
+    returns
+        f : frequency range with first and last entry removed
+        power_ls: lomb-scargle power
+    """
+    N = len(t) # number of datapoints
+    #f = np.fft.rfftfreq(N**2, (t[-1] - t[0])) # frequency range (from Uttley et al. 2002)
+    if f is None:
+        f = np.fft.rfftfreq(N, (t[1] - t[0])) # frequency range
+
+    fft = np.fft.rfft(y)
+    fft *= np.conj(fft)
+    
+    power_fft = fft.real / N**2
+    
+    return f, power_fft
 
 def LS_PSD(t,y, f=None):
     """
