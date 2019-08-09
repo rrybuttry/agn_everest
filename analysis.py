@@ -9,6 +9,7 @@ import lightkurve as lk
 
 from astropy.convolution import convolve, Box1DKernel # for boxcar smoothing
 
+from scipy.optimize import leastsq
 from lightkurve.correctors import PLDCorrector
 import everest
 
@@ -283,6 +284,36 @@ def spike(time, flux):
     spike = np.log10(power_temp/(10**(np.log10(freq_six_hour)*m_noise+b_noise)))
     
     return spike
+
+def subtract_sine(t, f):
+    '''
+    Function that will fit and subtract a sine curve (with 372.53 day period) from data
+    '''
+
+    period = 372.53
+    omega = 2*np.pi/period
+    #sin_func = lambda x: x[0]*np.sin(omega*t+x[1]) + x[2] - f # function to fit
+
+    def sin_func(x):
+        '''
+        Function to minimize (returns difference of sin curve and data)
+        '''
+        return x[0]*np.sin(omega*t+x[1]) + x[2] - f
+
+
+    # intial guess
+    guess_amp = 1.
+    guess_phase = 1.
+    guess_mean = 1.
+
+    # least squares fit
+    est = leastsq(sin_func, [guess_amp, guess_phase, guess_mean])[0]
+
+    # subtract the fit
+    new_f = f -(est[0]*np.sin(omega*t+est[1])+est[2])
+
+    return t, new_f
+
 
 #-------------------------------------------Data pre-processing------------------------------------------
 
