@@ -1,5 +1,4 @@
 # agn_everest
-[![DOI](https://zenodo.org/badge/178912855.svg)](https://zenodo.org/badge/latestdoi/178912855)
 Repository for building off of [EVEREST 2.0](https://github.com/rodluger/everest) to create a correction to be applied to K2 AGN. Code is used in producing some figures in Moreno et al 2021
 
 ## Jupyter Notebooks
@@ -19,3 +18,5 @@ Repository for building off of [EVEREST 2.0](https://github.com/rodluger/everest
 
 ## object_keys
 Folder containing CSV files containing summary information of the objects we're testing
+
+[![DOI](https://zenodo.org/badge/178912855.svg)](https://zenodo.org/badge/latestdoi/178912855)
