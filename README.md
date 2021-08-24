@@ -1,5 +1,6 @@
 # agn_everest
-Repository for building off of [EVEREST 2.0](https://github.com/rodluger/everest) to create a correction to be applied to K2 AGN
+[![DOI](https://zenodo.org/badge/178912855.svg)](https://zenodo.org/badge/latestdoi/178912855)
+Repository for building off of [EVEREST 2.0](https://github.com/rodluger/everest) to create a correction to be applied to K2 AGN. Code is used in producing some figures in Moreno et al 2021
 
 ## Jupyter Notebooks
 * arc_drift_obj.ipynb - Developing a way to determine/remove objects badly affected by arc drift
